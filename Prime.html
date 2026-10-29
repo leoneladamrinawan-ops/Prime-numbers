@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOCAL PRIME CALCULATOR</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #000000;
+            color: #00FF00;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Top Left Info Panel in Arial */
+        .info-panel {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            color: #00FF00;
+        }
+
+        /* Simple Input Line */
+        input:focus {
+            outline: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #008800;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col p-4">
+
+    <!-- Top Left Status Bar (Arial) -->
+    <div id="info-panel" class="info-panel mb-4 text-xl font-bold text-[#00FF00]">
+        Prime numbers
+    </div>
+
+    <!-- Output Stream Area -->
+    <div id="output" class="flex-1 overflow-y-auto space-y-1 font-sans text-base pr-2 mb-2 text-[#00FF00]">
+        <div>LOCAL PRIME ENGINE READY.</div>
+        <div>Commands: check [num] | range [start] [end] | next [num] | help | info | clear</div>
+    </div>
+
+    <!-- Command Line Interface -->
+    <div class="flex items-center space-x-2 border-t border-[#004400] pt-2 font-sans text-lg text-[#00FF00]">
+        <span>&gt;</span>
+        <input 
+            type="text" 
+            id="cli-input" 
+            class="flex-1 bg-transparent text-[#00FF00] font-sans border-none p-0 focus:ring-0"
+            placeholder="enter command (e.g., check 99999989 or range 1 1000)..."
+            autocomplete="off"
+            autofocus
+            spellcheck="false"
+        >
+    </div>
+
+    <script>
+        const outputEl = document.getElementById('output');
+        const cliInput = document.getElementById('cli-input');
+
+        window.onload = function() {
+            cliInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    handleCommand(cliInput.value.trim());
+                    cliInput.value = '';
+                }
+            });
+        };
+
+        function print(text) {
+            const line = document.createElement('div');
+            line.textContent = text;
+            outputEl.appendChild(line);
+            outputEl.scrollTop = outputEl.scrollHeight;
+        }
+
+        function handleCommand(rawCmd) {
+            if (!rawCmd) return;
+            print('> ' + rawCmd);
+
+            const parts = rawCmd.split(/\s+/);
+            const cmd = parts[0].toLowerCase();
+            const args = parts.slice(1);
+
+            switch (cmd) {
+                case 'check':
+                case 'isprime':
+                    if (args.length < 1) {
+                        print('Usage: check <number>');
+                    } else {
+                        checkPrime(args[0]);
+                    }
+                    break;
+
+                case 'range':
+                    if (args.length < 2) {
+                        print('Usage: range <start> <end>');
+                    } else {
+                        calculateRange(args[0], args[1]);
+                    }
+                    break;
+
+                case 'next':
+                    if (args.length < 1) {
+                        print('Usage: next <number>');
+                    } else {
+                        findNextPrime(args[0]);
+                    }
+                    break;
+
+                case 'help':
+                    displayHelp();
+                    break;
+
+                case 'info':
+                    displayInfo();
+                    break;
+
+                case 'clear':
+                    outputEl.innerHTML = '';
+                    break;
+
+                default:
+                    print('Unknown command. Type "help" for a list of commands.');
+                    break;
+            }
+        }
+
+        function displayHelp() {
+            print('--- HELP & COMMANDS ---');
+            print('check <number>       - Verify if a specific number is prime.');
+            print('range <start> <end>  - Calculate all prime numbers within a range.');
+            print('next <number>        - Find the very next prime after a number.');
+            print('info                 - Display program information.');
+            print('clear                - Clear the terminal screen.');
+            print('help                 - Display this information.');
+        }
+
+        function displayInfo() {
+            print('Prime number calculator');
+            print('By Leonel Adam 2026');
+        }
+
+        /* Pure Math Local Engine */
+
+        function isPrime(n) {
+            try {
+                let num = BigInt(n);
+                if (num <= 1n) return false;
+                if (num <= 3n) return true;
+                if (num % 2n === 0n || num % 3n === 0n) return false;
+
+                for (let i = 5n; i * i <= num; i += 6n) {
+                    if (num % i === 0n || num % (i + 2n) === 0n) return false;
+                }
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function checkPrime(val) {
+            const result = isPrime(val);
+            const digits = val.toString().length;
+
+            const text = result ? `${val} IS PRIME (${digits} digits)` : `${val} IS NOT PRIME (${digits} digits)`;
+            typeText(text);
+        }
+
+        function calculateRange(startStr, endStr) {
+            const start = parseInt(startStr);
+            const end = parseInt(endStr);
+
+            if (isNaN(start) || isNaN(end) || start > end) {
+                print('Invalid range parameters.');
+                return;
+            }
+
+            if (end > 50000000) {
+                print('Range upper limit exceeds browser memory safety threshold (50,000,000).');
+                return;
+            }
+
+            const isPrimeArr = new Uint8Array(end + 1);
+            isPrimeArr.fill(1);
+            isPrimeArr[0] = 0;
+            if (end >= 1) isPrimeArr[1] = 0;
+
+            const limit = Math.floor(Math.sqrt(end));
+            for (let i = 2; i <= limit; i++) {
+                if (isPrimeArr[i] === 1) {
+                    for (let j = i * i; j <= end; j += i) {
+                        isPrimeArr[j] = 0;
+                    }
+                }
+            }
+
+            const primes = [];
+            for (let i = Math.max(2, start); i <= end; i++) {
+                if (isPrimeArr[i] === 1) {
+                    primes.push(i);
+                }
+            }
+
+            if (primes.length > 0) {
+                const fullText = `Primes: ${primes.join(', ')}`;
+                typeText(fullText, 1500);
+            }
+        }
+
+        function typeText(text, durationMs = 1500) {
+            const line = document.createElement('div');
+            outputEl.appendChild(line);
+            
+            const totalChars = text.length;
+            if (totalChars === 0) return;
+
+            // Calculate interval to span total time over 1.5 seconds (1500 ms)
+            const intervalTime = Math.max(10, Math.floor(durationMs / totalChars));
+            const stepSize = Math.max(1, Math.ceil(totalChars / (durationMs / intervalTime)));
+            
+            let currentIndex = 0;
+
+            const timer = setInterval(() => {
+                currentIndex += stepSize;
+                if (currentIndex >= totalChars) {
+                    line.textContent = text;
+                    clearInterval(timer);
+                } else {
+                    line.textContent = text.substring(0, currentIndex);
+                }
+                outputEl.scrollTop = outputEl.scrollHeight;
+            }, intervalTime);
+        }
+
+        function findNextPrime(startVal) {
+            try {
+                let current = BigInt(startVal) + 1n;
+                // Search for next prime number
+                while (!isPrime(current)) {
+                    current++;
+                }
+
+                const digits = current.toString().length;
+
+                const text = `Next prime after ${startVal} is ${current} (${digits} digits)`;
+                typeText(text);
+            } catch (e) {
+                print('Invalid number provided for next prime search.');
+            }
+        }
+    </script>
+</body>
+</html>
